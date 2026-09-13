@@ -58,7 +58,7 @@ pip install -r requirements.txt
 ```
 
 **Requirements:**
-- Python 3.9+
+- Python 3.10+
 - A CUDA-capable GPU is recommended for training (CPU works for inference and quick tests)
 - EasyOCR downloads its recognition models on first run — expect a delay and some disk usage the first time the ANPR engine initializes
 
@@ -80,7 +80,7 @@ from pipeline import VehicleIntelligencePipeline
 
 pipeline = VehicleIntelligencePipeline()
 image = cv2.imread("path/to/image.jpg")
-results, vehicles, plates = pipeline.process_image(image_array=image)
+     results, vehicles, plates, plate_crops = pipeline.process_image(image_array=image)
 
 for r in results:
     print(r.get("plate_text"), r.get("ocr_confidence"))
@@ -112,7 +112,7 @@ python train_yolov8.py --data data.yaml --epochs 50 --batch 8 --imgsz 640 --mode
 python train_yolov8.py --data data.yaml --epochs 1 --batch 2 --imgsz 640
 ```
 
-Trained weights are saved under `runs/train/<run-name>/weights/`. By default `models/plate_detector.py` looks for custom weights at `runs/license_plate_detector/weights/best.pt`, falling back to a base `yolov8n.pt`/`yolov8n.onnx` if that path doesn't exist. `models/vehicle_detector.py` defaults to `yolov8n.pt` for the vehicle-detection stage.
+Trained weights are saved under `runs/train/<run-name>/weights/`. The application searches for a plate checkpoint in `models/plate_detector.pt`, then `runs/train/yolov8_train/weights/best.pt`, and then `runs/license_plate_detector/weights/best.pt`. If none exists, plate detection is disabled rather than using a generic object detector as a false plate detector. `models/vehicle_detector.py` defaults to `yolov8n.pt` for the vehicle-detection stage.
 
 ## Project Structure
 
@@ -132,7 +132,7 @@ Trained weights are saved under `runs/train/<run-name>/weights/`. By default `mo
 ## Notes
 
 - No Tesseract dependency — OCR is handled entirely by EasyOCR (`easyocr` in `requirements.txt`), which downloads its own recognition models on first use.
-- The plate detector silently falls back to a generic (non-plate-specialized) YOLO model if no custom-trained weights are found at its expected path — check the console warning if plate detection accuracy seems off.
+- A trained plate checkpoint is required for plate localization and OCR. The app reports when that checkpoint is missing; it never treats a generic vehicle detector as a plate detector.
 
 ## Future Improvements
 

@@ -13,7 +13,7 @@ def load_pipeline():
 def main():
     st.set_page_config(page_title="KnightSight ANPR Dashboard", layout="wide")
     st.title("🚗 YOLOv8 ANPR Dashboard")
-    st.markdown("Upload an image to test the end-to-end YOLOv8 pipeline: Vehicle Detection -> Plate Localization -> ANPR.")
+    st.markdown("Upload an image or video to run vehicle detection, plate localization, and OCR.")
 
     st.sidebar.header("Pipeline Settings")
     st.sidebar.markdown("This dashboard uses a lightweight YOLOv8-based detection pipeline with edge-friendly plate crop highlighting.")
@@ -66,12 +66,12 @@ def main():
                         else:
                             st.error("Error: Video processing failed. The output video is empty. This could be a codec issue with OpenCV 'mp4v'.")
                     
-                    # Cleanup input temp file
-                    try:
-                        os.unlink(tfile.name)
-                        os.unlink(output_path)
-                    except:
-                        pass
+                    # Cleanup input temp file and rendered output after Streamlit reads it.
+                    for path in (tfile.name, output_path):
+                        try:
+                            os.unlink(path)
+                        except OSError:
+                            pass
                 else:
                     # Convert uploaded file to OpenCV format
                     image = Image.open(uploaded_file)

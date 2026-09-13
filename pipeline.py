@@ -4,9 +4,9 @@ from models.plate_detector import PlateDetector
 from models.anpr_engine import ANPREngine
 
 class VehicleIntelligencePipeline:
-    def __init__(self):
-        self.vehicle_detector = VehicleDetector()
-        self.plate_detector = PlateDetector()
+    def __init__(self, vehicle_model_path='yolov8n.pt', plate_model_path=None):
+        self.vehicle_detector = VehicleDetector(vehicle_model_path)
+        self.plate_detector = PlateDetector(plate_model_path)
         self.anpr_engine = ANPREngine()
 
     def preprocess_image_clahe(self, image):
@@ -38,6 +38,11 @@ class VehicleIntelligencePipeline:
                 raise ValueError("Could not read image.")
         else:
             raise ValueError("Must provide image_path or image_array")
+
+        if image.ndim != 3 or image.shape[2] != 3:
+            raise ValueError("Expected a BGR image with three color channels.")
+        if image.size == 0:
+            raise ValueError("Image is empty.")
 
         # Low light enhancement
         enhanced_image = self.preprocess_image_clahe(image)
@@ -133,8 +138,13 @@ class VehicleIntelligencePipeline:
             label = f"Veh ID:{v['track_id']}" if v.get('track_id') else f"Veh {v['confidence']:.2f}"
             cv2.putText(annotated, label, (vx1, max(10, vy1 - 10)), 
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 0, 0), 2)
-                        
-        # NOTE: Plate boxes are not drawn on the full image; cropped plate images contain the highlighted edge.
+
+        for result in results:
+            px1, py1, px2, py2 = result['plate_box']
+            cv2.rectangle(annotated, (px1, py1), (px2, py2), (0, 255, 0), 2)
+            text = result.get('plate_text') or 'plate'
+            cv2.putText(annotated, text, (px1, max(10, py1 - 8)),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 255, 0), 2)
                         
         return annotated
 
@@ -142,6 +152,9 @@ class VehicleIntelligencePipeline:
         """
         Process a video end-to-end, writing an annotated video to output_path.
         """
+        if skip_frames < 0:
+            raise ValueError("skip_frames must be zero or greater.")
+
         cap = cv2.VideoCapture(video_path)
         if not cap.isOpened():
             raise ValueError(f"Error opening video file: {video_path}")
@@ -153,7 +166,13 @@ class VehicleIntelligencePipeline:
         
         # Use 'mp4v' codec for saving video
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        out = cv2.VideoWriter(output_path, fourcc, fps / (skip_frames + 1), (width, height))
+        if fps <= 0:
+            fps = 25.0
+        output_fps = fps / (skip_frames + 1)
+        out = cv2.VideoWriter(output_path, fourcc, output_fps, (width, height))
+        if not out.isOpened():
+            cap.release()
+            raise ValueError(f"Could not create output video: {output_path}")
         
         frame_idx = 0
         all_results = []
@@ -164,7 +183,7 @@ class VehicleIntelligencePipeline:
                 break
                 
             if frame_idx % (skip_frames + 1) == 0:
-                results, vehicles, plates = self.process_image(image_array=frame, is_video=True)
+                results, vehicles, plates, _ = self.process_image(image_array=frame, is_video=True)
                 annotated_frame = self.annotate_image(frame, results, vehicles)
                 out.write(annotated_frame)
                 
@@ -176,11 +195,14 @@ class VehicleIntelligencePipeline:
                     
             if progress_callback and total_frames > 0:
                 # Ensure we don't exceed 1.0 (100%) due to cv2 frame count inaccuracies
-                progress_callback(min(1.0, frame_idx / total_frames))
+                progress_callback(min(1.0, (frame_idx + 1) / total_frames))
                 
             frame_idx += 1
             
         cap.release()
         out.release()
+
+        if progress_callback:
+            progress_callback(1.0)
         
         return all_results

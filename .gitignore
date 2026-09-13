@@ -1,0 +1,16 @@
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# Runtime caches and generated inference/training outputs
+models/easyocr_models/
+models/easyocr_network/
+runs/
+
+# Local media and editor files
+*.mp4
+*.avi
+*.mov
+.DS_Store
+.vscode/

@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 import cv2
 from ultralytics import YOLO
 
@@ -7,12 +7,16 @@ class VehicleDetector:
         """
         Initialize the vehicle detector with a base YOLO model or optimized ONNX model.
         """
-        onnx_path = model_path.replace('.pt', '.onnx')
-        if os.path.exists(onnx_path):
+        PROJECT_ROOT = Path(__file__).resolve().parent.parent
+        model = Path(model_path)
+        if not model.is_absolute():
+            model = PROJECT_ROOT / model
+        onnx_path = model.with_suffix('.onnx')
+        if onnx_path.exists():
             print(f"Loading optimized ONNX vehicle detector: {onnx_path}")
-            self.model = YOLO(onnx_path, task='detect')
+            self.model = YOLO(str(onnx_path), task='detect')
         else:
-            self.model = YOLO(model_path)
+            self.model = YOLO(str(model))
     
     def detect(self, image, track=False):
         """

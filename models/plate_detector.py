@@ -1,29 +1,34 @@
-import os
+from pathlib import Path
 from ultralytics import YOLO
 
 class PlateDetector:
-    def __init__(self, model_path='runs/license_plate_detector/weights/best.pt'):
+    def __init__(self, model_path=None):
         """
         Initialize the plate detector with the custom trained YOLO model or optimized ONNX model.
         Falls back to base YOLOv8 model if the custom weights are not found.
         """
-        onnx_path = model_path.replace('.pt', '.onnx')
-        
-        if os.path.exists(onnx_path):
-            print(f"Loading optimized ONNX plate detector: {onnx_path}")
-            self.model = YOLO(onnx_path, task='detect')
-            self.is_custom = True
-        elif os.path.exists(model_path):
-            self.model = YOLO(model_path)
-            self.is_custom = True
-        else:
-            print(f"Warning: Custom plate model not found, falling back to base YOLO.")
-            onnx_fallback = 'yolov8n.onnx'
-            if os.path.exists(onnx_fallback):
-                self.model = YOLO(onnx_fallback, task='detect')
-            else:
-                self.model = YOLO('yolov8n.pt')
+        PROJECT_ROOT = Path(__file__).resolve().parent.parent
+        candidates = [Path(model_path)] if model_path else []
+        candidates.extend([
+            PROJECT_ROOT / 'models/plate_detector.pt',
+            PROJECT_ROOT / 'runs/train/yolov8_train/weights/best.pt',
+            PROJECT_ROOT / 'runs/license_plate_detector/weights/best.pt',
+        ])
+        candidates = [path if path.is_absolute() else PROJECT_ROOT / path for path in candidates]
+        selected = next((path for path in candidates if path and path.exists()), None)
+        if selected is None:
+            self.model = None
             self.is_custom = False
+            print('Warning: no trained plate model found; plate detection is disabled.')
+            return
+
+        onnx_path = selected.with_suffix('.onnx')
+        if onnx_path.exists():
+            print(f"Loading optimized ONNX plate detector: {onnx_path}")
+            self.model = YOLO(str(onnx_path), task='detect')
+        else:
+            self.model = YOLO(str(selected))
+        self.is_custom = True
             
     def detect(self, image, track=False):
         """
@@ -31,6 +36,9 @@ class PlateDetector:
         If track=True, uses YOLO's native tracking to return object IDs.
         Returns a list of dictionaries with bounding box, confidence, and track_id.
         """
+        if self.model is None:
+            return []
+
         if track:
             results = self.model.track(image, persist=True, verbose=False)
         else:
@@ -47,9 +55,7 @@ class PlateDetector:
                     if cls_id != 0:
                         continue
                 else:
-                    # Fallback model: allow vehicles to simulate plate crops for demonstration
-                    if cls_id not in [2, 3, 5, 7]:
-                        continue
+                    continue
                 
                 x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
                 conf = float(box.conf[0].cpu().numpy())
