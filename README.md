@@ -133,17 +133,3 @@ Trained weights are saved under `runs/train/<run-name>/weights/`. The applicatio
 
 - No Tesseract dependency — OCR is handled entirely by EasyOCR (`easyocr` in `requirements.txt`), which downloads its own recognition models on first use.
 - A trained plate checkpoint is required for plate localization and OCR. The app reports when that checkpoint is missing; it never treats a generic vehicle detector as a plate detector.
-
-## Future Improvements
-
-- Bundle or document a pretrained plate-detector checkpoint so the pipeline doesn't silently fall back to the generic base model
-- Add batch/video processing examples beyond the single-image API shown above
-- Add automated tests for the detection and OCR stages
-
-## Contributing
-
-Issues and pull requests are welcome.
-
-## License
-
-Built with Ultralytics YOLOv8, Streamlit, and EasyOCR. See repository for license details.
