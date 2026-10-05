@@ -1,3 +1,4 @@
+# Runtime and training dependencies; keep aligned with pyproject.toml.
 ultralytics
 torch
 torchvision

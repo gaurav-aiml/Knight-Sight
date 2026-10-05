@@ -1,7 +1,0 @@
-path: ./Dataset
-train: images
-val: images
-
-nc: 1
-names:
-  0: 'license_plate'

@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "visionplate"
+name = "knight-sight-anpr"
 version = "0.1.0"
 description = "License plate detection and training pipeline using YOLOv8."
 readme = "README.md"
@@ -16,7 +16,7 @@ dependencies = [
     "streamlit",
     "numpy",
     "Pillow",
-    "opencv-python",
+    "opencv-python-headless",
     "pandas",
     "tqdm",
 ]
@@ -26,4 +26,7 @@ authors = [
 ]
 
 [tool.setuptools]
-packages = ["models"]
+packages = ["anpr", "anpr.models"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
