@@ -36,7 +36,7 @@ tests/                      Unit and regression tests
 
 ## Requirements
 
-- Python 3.10 or newer.
+- Python 3.10 or newer (Python 3.12 is the system default on Ubuntu 24.04).
 - Internet access the first time pretrained YOLO or EasyOCR models need to be downloaded.
 - A CUDA-capable GPU is recommended for full training. CPU inference and small smoke tests are supported.
 
@@ -59,7 +59,25 @@ If PowerShell does not allow activation, invoke the environment directly:
 .\.venv\Scripts\python.exe -m pip install -e .
 ```
 
-### Linux or macOS
+### Ubuntu 24.04
+
+Ubuntu 24.04 ships with Python 3.12. Install the virtual-environment support and the OpenMP runtime used by PyTorch:
+
+```bash
+sudo apt update
+sudo apt install -y python3.12-venv libgomp1
+```
+
+Create an isolated environment and install the project from the repository root. Using a virtual environment also avoids Ubuntu's externally managed system-Python restriction:
+
+```bash
+python3.12 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -e .
+```
+
+### Other Linux distributions or macOS
 
 ```bash
 python3 -m venv .venv
